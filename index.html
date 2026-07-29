@@ -1,16 +1,97 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title data-default>Vite + React + TS</title>
-    <meta property="og:image" content="https://bolt.new/static/og_default.png" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:image" content="https://bolt.new/static/og_default.png" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dota 2 Meta Tracker - Patch 7.41d</title>
+    <link href="https://googleapis.com" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #080b0e; --bg-card: #11161d; --bg-card-hover: #18202a;
+            --primary-dota: #ff1e27; --accent-gold: #ffb020; --text-white: #ffffff; --text-gray: #94a3b8;
+            --tier-s: #ff3838; --tier-a: #ff9f1a; --tier-b: #05c46b;
+            --glow-shadow: 0 0 20px rgba(255, 30, 39, 0.3);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; cursor: none !important; }
+        body {
+            font-family: 'Rajdhani', sans-serif; background-color: var(--bg-dark); color: var(--text-white);
+            overflow-x: hidden; min-height: 100vh; background-attachment: fixed; position: relative;
+        }
+        #bg-canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; pointer-events: none; }
+        #custom-cursor {
+            position: fixed; width: 8px; height: 8px; background: var(--primary-dota); border-radius: 50%;
+            pointer-events: none; z-index: 10000; transform: translate(-50%, -50%); transition: width 0.2s, height 0.2s;
+            box-shadow: 0 0 10px var(--primary-dota), 0 0 20px var(--primary-dota);
+        }
+        #cursor-follower {
+            position: fixed; width: 24px; height: 24px; border: 2px solid var(--accent-gold); border-radius: 50%;
+            pointer-events: none; z-index: 9999; transform: translate(-50%, -50%);
+            transition: transform 0.08s cubic-bezier(0.25, 1, 0.5, 1), width 0.2s, height 0.2s, border-color 0.2s;
+        }
+        .click-ripple {
+            position: fixed; border: 2px solid var(--primary-dota); border-radius: 50%; pointer-events: none;
+            z-index: 9998; transform: translate(-50%, -50%); animation: rippleEffect 0.6s ease-out forwards;
+        }
+        @keyframes rippleEffect {
+            0% { width: 0; height: 0; opacity: 1; }
+            100% { width: 150px; height: 150px; opacity: 0; border-color: var(--accent-gold); }
+        }
+        h1, h2, h3, .tier-badge { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
+        header { background: linear-gradient(180deg, rgba(17, 22, 29, 0.95) 0%, rgba(8, 11, 14, 0.9) 100%); border-bottom: 2px solid rgba(255, 30, 39, 0.2); padding: 20px 40px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; backdrop-filter: blur(10px); }
+        .logo-text h1 { font-size: 1.6rem; font-weight: 900; background: linear-gradient(90deg, var(--text-white), var(--accent-gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .logo-text span { font-size: 0.8rem; color: var(--primary-dota); text-transform: uppercase; letter-spacing: 2px; display: block; font-weight: 700; }
+        nav { display: flex; gap: 15px; }
+        .nav-btn { background: transparent; border: 1px solid rgba(255,255,255,0.1); color: var(--text-gray); padding: 10px 24px; font-size: 0.95rem; font-weight: 600; text-transform: uppercase; border-radius: 4px; transition: all 0.3s; font-family: 'Orbitron', sans-serif; }
+        .nav-btn:hover { color: var(--text-white); border-color: var(--accent-gold); background-color: rgba(255, 176, 32, 0.05); }
+        .nav-btn.active { color: var(--text-white); background: var(--primary-dota); border-color: var(--primary-dota); box-shadow: var(--glow-shadow); }
+        main { max-width: 1400px; margin: 40px auto; padding: 0 20px; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .search-container { margin-bottom: 30px; display: flex; justify-content: center; }
+        .search-input { width: 100%; max-width: 500px; padding: 12px 20px; background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: white; font-family: 'Rajdhani', sans-serif; font-size: 1.1rem; transition: all 0.3s; }
+        .search-input:focus { outline: none; border-color: var(--accent-gold); box-shadow: 0 0 10px rgba(255, 176, 32, 0.2); }
+        .tier-section { margin-bottom: 50px; }
+        .tier-header { display: flex; align-items: center; gap: 15px; margin-bottom: 25px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; }
+        .tier-badge { font-size: 1.8rem; font-weight: 900; padding: 5px 20px; border-radius: 4px; text-shadow: 0 0 10px rgba(0,0,0,0.5); }
+        .tier-badge.s { background: var(--tier-s); box-shadow: 0 0 15px rgba(255, 56, 56, 0.4); }
+        .tier-badge.a { background: var(--tier-a); box-shadow: 0 0 15px rgba(255, 159, 26, 0.4); }
+        .tier-badge.b { background: var(--tier-b); box-shadow: 0 0 15px rgba(5, 196, 107, 0.4); }
+        .tier-title { font-size: 1.2rem; color: var(--text-gray); text-transform: uppercase; }
+        .heroes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 25px; }
+        .hero-card { background-color: var(--bg-card); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; overflow: hidden; position: relative; transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); display: flex; flex-direction: column; backdrop-filter: blur(5px); }
+        .hero-card:hover { transform: translateY(-8px); background-color: var(--bg-card-hover); border-color: var(--accent-gold); box-shadow: 0 10px 25px rgba(255, 176, 32, 0.15); }
+        .hero-img-wrapper { position: relative; height: 145px; overflow: hidden; background-color: #050709; }
+        .hero-img { width: 100%; height: 100%; object-fit: cover; transition: all 0.4s; }
+        .hero-card:hover .hero-img { transform: scale(1.08); }
+        .hero-info { padding: 15px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
+        .hero-name { font-size: 1.4rem; font-weight: 700; color: var(--text-white); margin-bottom: 12px; }
+        .hero-stats-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.95rem; margin-top: 6px; }
+        .stat-label { color: var(--text-gray); }
+        .stat-value { font-weight: 700; font-family: 'Orbitron', sans-serif; }
+        .stat-value.win { color: #05c46b; }
+        .select-hero-prompt { text-align: center; padding: 60px; background: var(--bg-card); border: 1px dashed rgba(255,255,255,0.1); border-radius: 8px; color: var(--text-gray); font-size: 1.2rem; }
+        .hero-detail-layout { display: grid; grid-template-columns: 320px 1fr; gap: 30px; }
+        .active-hero-sidebar { background: var(--bg-card); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 20px; text-align: center; position: sticky; top: 100px; height: fit-content; }
+        .sidebar-img { width: 100%; border-radius: 6px; border: 2px solid var(--accent-gold); margin-bottom: 15px; }
+        .sidebar-name { font-size: 1.8rem; font-weight: 700; margin-bottom: 5px; }
+        .sidebar-tier { display: inline-block; padding: 3px 12px; border-radius: 4px; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; margin-top: 10px; }
+        .detail-panel { background: var(--bg-card); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 30px; }
+        .panel-title { font-size: 1.4rem; margin-bottom: 25px; border-left: 4px solid var(--primary-dota); padding-left: 12px; text-transform: uppercase; }
+        .build-tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
+        .build-tab-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-gray); padding: 8px 16px; border-radius: 4px; font-weight: 600; }
+        .build-tab-btn.active { background: var(--accent-gold); color: black; border-color: var(--accent-gold); }
+        .items-flex { display: flex; flex-wrap: wrap; gap: 15px; background: rgba(0,0,0,0.3); padding: 20px; border-radius: 6px; margin-bottom: 25px; }
+        .item-wrapper { display: flex; flex-direction: column; align-items: center; width: 85px; text-align: center; background: rgba(255,255,255,0.02); padding: 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
+        .item-img { width: 70px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #334155; }
+        .item-name { font-size: 0.75rem; color: var(--text-white); margin-top: 5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+        .item-wr { font-size: 0.7rem; color: #05c46b; font-weight: 700; font-family: 'Orbitron', sans-serif; margin-top: 2px; }
+        .skills-grid { display: flex; flex-direction: column; gap: 12px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 6px; }
+        .skill-row { display: grid; grid-template-columns: 160px 1fr; align-items: center; gap: 15px; }
+        .skill-name { font-size: 0.95rem; font-weight: 700; color: var(--accent-gold); }
+        .skills-steps { display: grid; grid-template-columns: repeat(15, 1fr); gap: 4px; }
+        .skill-step-box { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.05); height: 25px; border-radius: 3px; display: flex; justify-content: center; align-items: center; font-size: 0.75rem; font-weight: 700; color: rgba(255,255,255,0.1); }
+        .skill-step-box.active { background: var(--primary-dota); color: white; border-color: var(--primary-dota); box-shadow: 0 0 5px var(--primary-dota); }
+        .counter-grid-split { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        .counter-box { padding: 20px; border-radius: 6px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.02); }
+        .counter-box h3 { font-size: 1.15rem; margin-bottom: 20px; }
+Используйте код с осторожностью..counter-list { display: flex; flex-direction: column; gap: 15px; }.counter-item { display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.3); padding: 12px 20px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.02); }.counter-hero-name { font-weight: 700; font-size: 1.1rem; }.counter-stat-value { font-family: 'Orbitron', sans-serif; font-weight: 700; }.counter-box.best .counter-stat-value { color: #05c46b; }.counter-box.worst .counter-stat-value { color: #ff3838; }@media (max-width: 900px) {.hero-detail-layout { grid-template-columns: 1fr; }.active-hero-sidebar { position: relative; top: 0; }.counter-grid-split { grid-template-columns: 1fr; }header { flex-direction: column; gap: 15px; padding: 15px; }.skill-row { grid-template-columns: 1fr; }}let state = { heroes: [], selectedHeroId: null, currentBuildStyle: 'standard' };const FULL_HEROES_DATABASE = [{ id: 1, name: "slark", localized_name: "Slark", win_rate: 54.65, pick_rate: 16.2, attr: "agi", img: "steamstatic.com" },{ id: 2, name: "nevermore", localized_name: "Shadow Fiend", win_rate: 53.90, pick_rate: 21.4, attr: "agi", img: "steamstatic.com" },{ id: 3, name: "abaddon", localized_name: "Abaddon", win_rate: 53.45, pick_rate: 9.1, attr: "all", img: "steamstatic.com" },{ id: 4, name: "witch_doctor", localized_name: "Witch Doctor", win_rate: 53.12, pick_rate: 24.5, attr: "int", img: "steamstatic.com" },{ id: 5, name: "primal_beast", localized_name: "Primal Beast", win_rate: 52.80, pick_rate: 11.3, attr: "str", img: "steamstatic.com" },{ id: 6, name: "pudge", localized_name: "Pudge", win_rate: 51.40, pick_rate: 32.1, attr: "str", img: "steamstatic.com" },{ id: 7, name: "invoker", localized_name: "Invoker", win_rate: 51.15, pick_rate: 14.8, attr: "all", img: "steamstatic.com" },{ id: 8, name: "axe", localized_name: "Axe", win_rate: 50.95, pick_rate: 15.2, attr: "str", img: "steamstatic.com" },{ id: 9, name: "legion_commander", localized_name: "Legion Commander", win_rate: 50.35, pick_rate: 17.6, attr: "str", img: "steamstatic.com" },{ id: 10, name: "crystal_maiden", localized_name: "Crystal Maiden", win_rate: 50.10, pick_rate: 13.9, attr: "int", img: "steamstatic.com" },{ id: 11, name: "juggernaut", localized_name: "Juggernaut", win_rate: 49.45, pick_rate: 18.1, attr: "agi", img: "steamstatic.com" },{ id: 12, name: "phantom_assassin", localized_name: "Phantom Assassin", win_rate: 48.90, pick_rate: 22.3, attr: "agi", img: "steamstatic.com" },{ id: 13, name: "rubick", localized_name: "Rubick", win_rate: 47.60, pick_rate: 25.4, attr: "int", img: "steamstatic.com" },{ id: 14, name: "antimage", localized_name: "Anti-Mage", win_rate: 46.80, pick_rate: 12.1, attr: "agi", img: "steamstatic.com" },{ id: 15, name: "lion", localized_name: "Lion", win_rate: 45.90, pick_rate: 20.8, attr: "int", img: "steamstatic.com" },{ id: 16, name: "ringmaster", localized_name: "Ringmaster", win_rate: 52.10, pick_rate: 14.5, attr: "int", img: "steamstatic.com" },{ id: 17, name: "kez", localized_name: "Kez", win_rate: 48.20, pick_rate: 19.3, attr: "agi", img: "steamstatic.com" }];const ASSETS = {tango: { name: "Tango", wr: "54.1%", img: "steamstatic.com" },pt: { name: "Power Treads", wr: "56.8%", img: "steamstatic.com" },manta: { name: "Manta Style", wr: "58.2%", img: "steamstatic.com" },bkb: { name: "Black King Bar", wr: "55.4%", img: "steamstatic.com" },butterfly: { name: "Butterfly", wr: "61.3%", img: "steamstatic.com" },phase: { name: "Phase Boots", wr: "53.2%", img: "steamstatic.com" },blink: { name: "Blink Dagger", wr: "54.9%", img: "steamstatic.com" },heart: { name: "Heart of Tarrasque", wr: "59.1%", img: "steamstatic.com" },lens: { name: "Aether Lens", wr: "52.8%", img: "steamstatic.com" },aghanim: { name: "Aghanims Scepter", wr: "57.4%", img: "steamstatic.com" },hex: { name: "Scythe of Vyse", wr: "62.5%", img: "steamstatic.com" }};// Настройка кастомного курсора со шлейфомconst cursor = document.getElementById('custom-cursor');const follower = document.getElementById('cursor-follower');document.addEventListener('mousemove', (e) => {cursor.style.left = e.clientX + 'px'; cursor.style.top = e.clientY + 'px';setTimeout(() => { follower.style.left = e.clientX + 'px'; follower.style.top = e.clientY + 'px'; }, 40);});document.addEventListener('click', (e) => {const r = document.createElement('div'); r.className = 'click-ripple'; r.style.left = e.clientX + 'px'; r.style.top = e.clientY + 'px';document.body.appendChild(r); setTimeout(() => r.remove(), 600);});// HTML5 Canvas - анимация лазерной сетки на фонеconst canvas = document.getElementById('bg-canvas'); const ctx = canvas.getContext('2d');function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }window.addEventListener('resize', resizeCanvas); resizeCanvas();let stars = Array.from({length: 40}, () => ({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: Math.random()*1.5+0.5, d: Math.random()0.5+0.2 }));function drawBg() {ctx.clearRect(0,0,canvas.width,canvas.height); ctx.fillStyle = 'rgba(255,30,39,0.03)';stars.forEach(s => { ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI2); ctx.fill(); s.y -= s.d; if(s.y < 0) s.y = canvas.height; });requestAnimationFrame(drawBg);}drawBg();function switchTab(tab) {document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));const e = window.event; if(e && e.target.classList.contains('nav-btn')) e.target.classList.add('active');document.getElementById(${tab}-tab).classList.add('active');if(state.selectedHeroId) renderHeroDetails(state.selectedHeroId);}function filterHeroes() {const q = document.getElementById('hero-search').value.toLowerCase();renderMetaRating(state.heroes.filter(h => h.localized_name.toLowerCase().includes(q)));}function renderMetaRating(list = state.heroes) {const grids = { S: document.getElementById('tier-s-grid'), A: document.getElementById('tier-a-grid'), B: document.getElementById('tier-b-grid') };Object.values(grids).forEach(g => g.innerHTML = '');list.forEach(h => {let t = 'B'; if(h.win_rate >= 53) t = 'S'; else if(h.win_rate >= 50) t = 'A';const card = document.createElement('div'); card.className = 'hero-card'; card.onclick = () => { state.selectedHeroId = h.id; switchTab('builds'); };card.innerHTML = <div class="hero-img-wrapper"><img class="hero-img" src="${h.img}"></div><div class="hero-info"><div class="hero-name">${h.localized_name}</div><div class="hero-stats-row"><span class="stat-label">Винрейт</span><span class="stat-value win">${h.win_rate}%</span></div><div class="hero-stats-row"><span class="stat-label">Популярность</span><span class="stat-value">${h.pick_rate}%</span></div></div>;grids[t].appendChild(card);});}function changeBuildStyle(style) {document.querySelectorAll('.build-tab-btn').forEach(b => b.classList.remove('active'));const e = window.event; if(e) e.target.classList.add('active');state.currentBuildStyle = style;if(state.selectedHeroId) renderHeroDetails(state.selectedHeroId);}function renderHeroDetails(id) {const h = state.heroes.find(x => x.id === id); if(!h) return;let tl = 'B', tc = 'b'; if (h.win_rate >= 53) { tl = 'S'; tc = 's'; } else if (h.win_rate >= 50) { tl = 'A'; tc = 'a'; }['builds', 'counters'].forEach(tab => {document.getElementById(${tab}-placeholder).style.display = 'none'; document.getElementById(${tab}-container).style.display = 'grid';document.getElementById(${tab}-sidebar).innerHTML = <img class="sidebar-img" src="${h.img}"><div class="sidebar-name">${h.localized_name}</div><div class="sidebar-tier tier-badge ${tc}">${tl}-Тир</div>;});let items = [];if(h.attr === 'agi') items = [ASSETS.tango, ASSETS.pt, ASSETS.manta, ASSETS.butterfly, ASSETS.bkb];else if(h.attr === 'int') items = [ASSETS.tango, ASSETS.lens, ASSETS.aghanim, ASSETS.hex];else items = [ASSETS.tango, ASSETS.phase, ASSETS.blink, ASSETS.bkb, ASSETS.heart];if(state.currentBuildStyle === 'heavy') items = [ASSETS.tango, ASSETS.bkb, ASSETS.heart];document.getElementById('build-items-display').innerHTML = items.map(i => <div class="item-wrapper"><img class="item-img" src="${i.img}"><div class="item-name">${i.name}</div><div class="item-wr">${i.wr} WR</div></div>).join('');document.getElementById('skills-progression').innerHTML = <div class="skill-row"><span class="skill-name">Основной скилл (Q)</span><div class="skills-steps"><div class="skill-step-box active">1</div><div class="skill-step-box"></div><div class="skill-step-box active">3</div><div class="skill-step-box"></div><div class="skill-step-box active">5</div><div class="skill-step-box"></div><div class="skill-step-box active">7</div><div class="skill-step-box"></div><div class="skill-step-box"></div><div class="skill-step-box"></div><div class="skill-step-box"></div><div class="skill-step-box"></div><div class="skill-step-box"></div><div class="skill-step-box"></div><div class="skill-step-box"></div></div></div> <div class="skill-row"><span class="skill-name">Второй скилл (W)</span><div class="skills-steps"><div class="skill-step-box"></div><div class="skill-step-box active">2</div><div class="skill-step-box"></div><div class="skill-step-box active">4</div><div class="skill-step-box"></div><div class="skill-step-box active">6</div><div class="skill-step-box"></div><div class="skill-step-box active">8</div><div class="skill-step-box"></div><div class="skill-step-box"></div><div class="skill-step-box"></div><div class="skill-step-box"></div><div class="skill-step-box"></div><div class="skill-step-box"></div><div class="skill-step-box"></div></div></div>;const others = state.heroes.filter(x => x.id !== id).slice(0, 3);document.getElementById('counters-best-list').innerHTML = others.map(x => <div class="counter-item"><span class="counter-hero-name">${x.localized_name}</span><span class="counter-stat-value">${(h.win_rate + 2.5).toFixed(1)}% WR</span></div>).join('');document.getElementById('counters-worst-list').innerHTML = others.reverse().map(x => <div class="counter-item"><span class="counter-hero-name">${x.localized_name}</span><span class="counter-stat-value">${(h.win_rate - 3.4).toFixed(1)}% WR</span></div>).join('');}state.heroes = FULL_HEROES_DATABASE;renderMetaRating();
