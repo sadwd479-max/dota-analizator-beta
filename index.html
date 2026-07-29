@@ -3,77 +3,167 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dota 2 Meta Tracker - Premium Cyber Edition</title>
+    <title>Cyber Case Opener</title>
     <link href="https://googleapis.com" rel="stylesheet">
+    <!-- Подключаем официальный скрипт Telegram Web Apps -->
+    <script src="https://telegram.org"></script>
     <style>
         :root {
-            --bg-dark: #07090c; --bg-card: rgba(17, 22, 29, 0.45); --bg-card-hover: rgba(26, 34, 46, 0.75);
-            --primary-dota: #ff1e27; --accent-gold: #ffb020; --text-white: #ffffff; --text-gray: #94a3b8;
-            --tier-s: #ff3344; --tier-a: #ffa600; --tier-b: #00e676;
-            --glow-s: 0 8px 30px rgba(255, 51, 68, 0.35), 0 0 15px rgba(255, 51, 68, 0.25);
-            --glow-a: 0 8px 30px rgba(255, 166, 0, 0.35), 0 0 15px rgba(255, 166, 0, 0.25);
-            --glow-b: 0 8px 30px rgba(0, 230, 118, 0.35), 0 0 15px rgba(0, 230, 118, 0.25);
-            --transition-cyber: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            --bg-dark: #06080b; --bg-card: rgba(17, 22, 29, 0.7);
+            --primary: #ff1e27; --accent: #ffb020;
+            --rarity-rare: #00e676; --rarity-mythical: #00b0ff; --rarity-immortal: #e040fb; --rarity-arcana: #ffb020;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; cursor: none !important; }
-        body { font-family: 'Rajdhani', sans-serif; background-color: var(--bg-dark); color: var(--text-white); overflow-x: hidden; min-height: 100vh; position: relative; }
-        #bg-canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; pointer-events: none; }
-        body::before {
-            content: ""; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -2;
-            background: radial-gradient(circle at 15% 25%, rgba(255, 30, 39, 0.12) 0%, transparent 50%), radial-gradient(circle at 85% 75%, rgba(255, 176, 32, 0.09) 0%, transparent 50%), linear-gradient(135deg, #06080b 0%, #11151d 50%, #06080b 100%);
-            background-size: 400% 400%; animation: nebulaFlow 15s ease infinite; pointer-events: none;
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body {
+            font-family: 'Rajdhani', sans-serif; background-color: var(--bg-dark); color: #fff;
+            overflow-x: hidden; min-height: 100vh; padding: 15px;
+            background-image: radial-gradient(circle at 50% 20%, rgba(255, 30, 39, 0.15) 0%, transparent 60%);
         }
-        @keyframes nebulaFlow { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-        #custom-cursor { position: fixed; width: 6px; height: 6px; background: #fff; border-radius: 50%; pointer-events: none; z-index: 10000; transform: translate(-50%, -50%); box-shadow: 0 0 10px #fff, 0 0 25px var(--primary-dota); left: -100px; top: -100px; }
-        #cursor-follower { position: fixed; width: 34px; height: 34px; border: 1.5px solid var(--primary-dota); border-radius: 50%; pointer-events: none; z-index: 9999; transform: translate(-50%, -50%); left: -100px; top: -100px; box-shadow: 0 0 12px rgba(255, 30, 39, 0.4); }
-        #cursor-follower::before, #cursor-follower::after { content: ''; position: absolute; background: var(--primary-dota); }
-        #cursor-follower::before { top: -5px; left: 50%; width: 1.5px; height: 5px; transform: translateX(-50%); }
-        #cursor-follower::after { bottom: -5px; left: 50%; width: 1.5px; height: 5px; transform: translateX(-50%); }
-        .click-ripple { position: fixed; border: 2px solid var(--primary-dota); border-radius: 50%; pointer-events: none; z-index: 9998; transform: translate(-50%, -50%); animation: rippleWave 0.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
-        @keyframes rippleWave { 0% { width: 0; height: 0; opacity: 1; border-color: var(--primary-dota); } 50% { border-color: var(--accent-gold); } 100% { width: 160px; height: 140px; opacity: 0; transform: translate(-50%, -50%) scale(1.25); } }
-        h1, h2, h3, .tier-badge { font-family: 'Orbitron', sans-serif; letter-spacing: 1.5px; }
-        header { background: linear-gradient(180deg, rgba(11, 15, 22, 0.85) 0%, rgba(6, 8, 11, 0.75) 100%); border-bottom: 1px solid rgba(255, 30, 39, 0.3); padding: 22px 50px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); }
-        .logo-container { display: flex; align-items: center; gap: 15px; }
-        .logo-icon { width: 25px; height: 25px; background: var(--primary-dota); transform: rotate(-45deg); position: relative; box-shadow: 0 0 15px var(--primary-dota); }
-        .logo-icon::before { content: ""; position: absolute; top: 3px; left: 3px; width: 6px; height: 18px; background: #06080b; }
-        .logo-icon::after { content: ""; position: absolute; bottom: 3px; right: 3px; width: 11px; height: 6px; background: #06080b; }
-        .logo-text h1 { font-size: 1.5rem; font-weight: 900; background: linear-gradient(90deg, #fff, var(--accent-gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .logo-text span { font-size: 0.75rem; color: var(--primary-dota); text-transform: uppercase; letter-spacing: 3px; display: block; font-weight: 700; margin-top: -2px; }
-        nav { display: flex; gap: 12px; }
-        .nav-btn { background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.06); color: var(--text-gray); padding: 12px 28px; font-size: 0.88rem; font-weight: 700; text-transform: uppercase; border-radius: 4px; transition: var(--transition-cyber); font-family: 'Orbitron', sans-serif; }
-        .nav-btn:hover { color: var(--text-white); border-color: var(--accent-gold); background: rgba(255, 176, 32, 0.04); }
-        .nav-btn.active { color: var(--text-white); background: var(--primary-dota); border-color: var(--primary-dota); box-shadow: var(--glow-s); text-shadow: 0 0 5px #fff; }
-        main { max-width: 1400px; margin: 40px auto; padding: 0 24px; }
-        .tab-content { display: none; animation: cyberFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        .tab-content.active { display: block; }
-        @keyframes cyberFade { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-        .search-container { margin-bottom: 45px; display: flex; justify-content: center; }
-        .search-input { width: 100%; max-width: 550px; padding: 15px 26px; background: rgba(14, 19, 26, 0.85); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; color: white; font-family: 'Rajdhani', sans-serif; font-size: 1.15rem; transition: var(--transition-cyber); backdrop-filter: blur(10px); box-shadow: inset 0 4px 10px rgba(0,0,0,0.6); }
-        .search-input:focus { outline: none; border-color: var(--accent-gold); box-shadow: 0 0 20px rgba(255, 176, 32, 0.25), inset 0 4px 10px rgba(0,0,0,0.6); }
-        .tier-section { margin-bottom: 60px; }
-        .tier-header { display: flex; align-items: center; gap: 18px; margin-bottom: 30px; border-bottom: 1px solid rgba(255,255,255,0.07); padding-bottom: 12px; }
-        .tier-badge { font-size: 1.9rem; font-weight: 900; padding: 4px 22px; border-radius: 4px; text-shadow: 0 2px 5px rgba(0,0,0,0.7); color: #fff; }
-        .tier-badge.s { background: var(--tier-s); box-shadow: 0 0 20px rgba(255, 51, 68, 0.45); }
-        .tier-badge.a { background: var(--tier-a); box-shadow: 0 0 20px rgba(255, 166, 0, 0.45); }
-        .tier-badge.b { background: var(--tier-b); box-shadow: 0 0 20px rgba(0, 230, 118, 0.45); }
-        .tier-title { font-size: 1.15rem; color: var(--text-gray); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
-        .heroes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 30px; }
-        .hero-card { background: var(--bg-card); border: 1px solid rgba(255,255,255,0.04); border-radius: 8px; overflow: hidden; position: relative; transition: var(--transition-cyber); display: flex; flex-direction: column; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: 0 10px 20px rgba(0,0,0,0.4); }
-        .tier-section[data-tier="S"] .hero-card:hover { border-color: var(--tier-s); box-shadow: var(--glow-s); }
-        .tier-section[data-tier="A"] .hero-card:hover { border-color: var(--tier-a); box-shadow: var(--glow-a); }
-        .tier-section[data-tier="B"] .hero-card:hover { border-color: var(--tier-b); box-shadow: var(--glow-b); }
-        .hero-card:hover { transform: translateY(-10px); background: var(--bg-card-hover); }
-        .hero-img-wrapper { position: relative; height: 155px; overflow: hidden; background-color: #030507; border-bottom: 1px solid rgba(255,255,255,0.04); }
-        .hero-img { width: 100%; height: 100%; object-fit: cover; transition: var(--transition-cyber); filter: brightness(0.85); }
-        .hero-card:hover .hero-img { transform: scale(1.07); filter: brightness(1.1); }
-        .hero-attr-icon { position: absolute; top: 12px; right: 12px; width: 26px; height: 26px; background: rgba(0,0,0,0.8); border-radius: 50%; padding: 4px; border: 1px solid rgba(255,255,255,0.2); }
-        .hero-info { padding: 22px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
-        .hero-name { font-size: 1.5rem; font-weight: 700; color: var(--text-white); margin-bottom: 14px; letter-spacing: 0.5px; }
-        .hero-stats-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.95rem; margin-top: 6px; }
-        .stat-label { color: var(--text-gray); font-weight: 500; }
-        .stat-value { font-weight: 700; font-family: 'Orbitron', sans-serif; }
-        .stat-value.win { color: #00e676; text-shadow: 0 0 10px rgba(0,230,118,0.3); }
-        .select-hero-prompt { text-align: center; padding: 75px; background: var(--bg-card); border: 1px dashed rgba(255,255,255,0.12); border-radius: 8px; color: var(--text-gray); font-size: 1.25rem; backdrop-filter: blur(12px); box-shadow: 0 10px 20px rgba(0,0,0,0.4); }
-        .hero-detail-layout { display: grid; grid-template-columns: 320px 1fr; gap: 35px; }
-        .active-hero-sidebar { background: var(--bg-card); border: 1px solid rgba(255,255,255,0.04); border-radius: 8px; padding: 24px; text-align: center; position: sticky; top: 120px; height: fit-content; backdrop-filter: blur(12px); box-shadow: 0 10px 20px rgba(0,0,0,0.4); }
-Используйте код с осторожностью..sidebar-img { width: 100%; border-radius: 6px; border: 2px solid var(--accent-gold); box-shadow: 0 10px 25px rgba(0,0,0,0.7); }.sidebar-name { font-size: 1.85rem; font-weight: 700; margin-top: 15px; letter-spacing: 0.5px; }.sidebar-tier { display: inline-block; padding: 4px 16px; border-radius: 4px; font-weight: 800; font-size: 0.9rem; text-transform: uppercase; margin-top: 10px; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }.sidebar-tier.s { background: var(--tier-s); box-shadow: 0 0 12px var(--tier-s); }.sidebar-tier.a { background: var(--tier-a); box-shadow: 0 0 12px var(--tier-a); }.sidebar-tier.b { background: var(--tier-b); box-shadow: 0 0 12px var(--tier-b); }.detail-panel { background: var(--bg-card); border: 1px solid rgba(255,255,255,0.04); border-radius: 8px; padding: 35px; backdrop-filter: blur(12px); box-shadow: 0 10px 20px rgba(0,0,0,0.4); }.panel-title { font-size: 1.35rem; margin-bottom: 25px; border-left: 4px solid var(--primary-dota); padding-left: 14px; text-transform: uppercase; color: #fff; text-shadow: 0 0 10px rgba(255,30,39,0.2); }.build-tabs { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 12px; }.build-tab-btn { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.07); color: var(--text-gray); padding: 10px 22px; border-radius: 4px; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; transition: var(--transition-cyber); }.build-tab-btn:hover { color: #fff; border-color: var(--accent-gold); }.build-tab-btn.active { background: var(--accent-gold); color: #000; border-color: var(--accent-gold); font-weight: 800; box-shadow: 0 0 15px rgba(255,176,32,0.35); }.items-flex { display: flex; flex-wrap: wrap; gap: 18px; background: rgba(0,0,0,0.45); padding: 24px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.02); margin-bottom: 40px; box-shadow: inset 0 4px 10px rgba(0,0,0,0.5); }.item-wrapper { display: flex; flex-direction: column; align-items: center; width: 95px; text-align: center; background: rgba(255,255,255,0.02); padding: 10px 6px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.04); transition: var(--transition-cyber); }.item-wrapper:hover { border-color: var(--accent-gold); background: rgba(255,255,255,0.04); transform: scale(1.06); box-shadow: 0 4px 12px rgba(255,176,32,0.15); }.item-img { width: 74px; height: 52px; object-fit: cover; border-radius: 4px; border: 1px solid #232d3d; box-shadow: 0 4px 10px rgba(0,0,0,0.6); }.item-name { font-size: 0.78rem; color: #fff; margin-top: 6px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }.item-wr { font-size: 0.72rem; color: #00e676; font-weight: 700; font-family: 'Orbitron', sans-serif; margin-top: 2px; text-shadow: 0 0 5px rgba(0,230,118,0.3); }.skills-grid { display: flex; flex-direction: column; gap: 14px; background: rgba(0,0,0,0.35); padding: 22px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.02); box-shadow: inset 0 2px 6px rgba(0,0,0,0.5); }.skill-row { display: grid; grid-template-columns: 180px 1fr; align-items: center; gap: 20px; }.skill-name { font-size: 0.95rem; font-weight: 700; color: var(--accent-gold); text-transform: uppercase; letter-spacing: 0.5px; }.skills-steps { display: grid; grid-template-columns: repeat(15, 1fr); gap: 5px; }.skill-step-box { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.03); height: 28px; border-radius: 3px; display: flex; justify-content: center; align-items: center; font-size: 0.8rem; font-weight: 700; color: rgba(255,255,255,0.06); }.skill-step-box.active { background: var(--primary-dota); color: white; border-color: var(--primary-dota); box-shadow: 0 0 10px var(--primary-dota); text-shadow: 0 1px 2px rgba(0,0,0,0.5); }.counter-grid-split { display: grid; grid-template-columns: 1fr 1fr; gap: 35px; }.counter-box { padding: 24px; border-radius: 6px; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.02); box-shadow: inset 0 4px 10px rgba(0,0,0,0.4); }.counter-box h3 { font-size: 1.2rem; margin-bottom: 22px; text-transform: uppercase; font-weight: 700; }.counter-box.best h3 { color: var(--tier-b); text-shadow: 0 0 12px rgba(0,230,118,0.25); }.counter-box.worst h3 { color: var(--tier-s); text-shadow: 0 0 12px rgba(255,51,68,0.25); }.counter-list { display: flex; flex-direction: column; gap: 14px; }.counter-item { display: flex; align-items: center; justify-content: space-between; background: rgba(17, 22, 29, 0.4); padding: 14px 24px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.02); transition: var(--transition-cyber); }.counter-item:hover { background: rgba(255,255,255,0.03); transform: translateX(6px); border-color: rgba(255,255,255,0.08); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }.counter-hero-meta { display: flex; align-items: center; gap: 15px; }.counter-hero-img { width: 64px; height: 38px; object-fit: cover; border-radius: 4px; border: 1px solid #232d3d; box-shadow: 0 2px 6px rgba(0,0,0,0.5); }.counter-hero-name { font-weight: 700; font-size: 1.1rem; letter-spacing: 0.5px; }.counter-stat-value { font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 1.05rem; }.counter-box.best .counter-stat-value { color: #00e676; text-shadow: 0 0 5px rgba(0,230,118,0.2); }.counter-box.worst .counter-stat-value { color: #ff3838; text-shadow: 0 0 5px rgba(255,56,56,0.2); }@media (max-width: 950px) { .hero-detail-layout { grid-template-columns: 1fr; } .active-hero-sidebar { position: relative; top: 0; } .counter-grid-split { grid-template-columns: 1fr; } header { flex-direction: column; gap: 18px; padding: 20px; } .skill-row { grid-template-columns: 1fr; gap: 8px; } }let state = { heroes: [], selectedHeroId: null, currentBuildStyle: 'standard' };const FULL_HEROES_DATABASE = [{ id: 1, name: "slark", localized_name: "Slark", win_rate: 54.65, pick_rate: 16.2, attr: "agi", img: "steamstatic.com" },{ id: 2, name: "nevermore", localized_name: "Shadow Fiend", win_rate: 53.90, pick_rate: 21.4, attr: "agi", img: "steamstatic.com" },{ id: 3, name: "abaddon", localized_name: "Abaddon", win_rate: 53.45, pick_rate: 9.1, attr: "all", img: "steamstatic.com" },{ id: 4, name: "witch_doctor", localized_name: "Witch Doctor", win_rate: 53.12, pick_rate: 24.5, attr: "int", img: "steamstatic.com" },{ id: 5, name: "wraith_king", localized_name: "Wraith King", win_rate: 53.05, pick_rate: 13.2, attr: "str", img: "steamstatic.com" },{ id: 6, name: "primal_beast", localized_name: "Primal Beast", win_rate: 52.80, pick_rate: 11.3, attr: "str", img: "steamstatic.com" },{ id: 7, name: "ringmaster", localized_name: "Ringmaster", win_rate: 52.10, pick_rate: 14.5, attr: "int", img: "steamstatic.com" },{ id: 8, name: "pudge", localized_name: "Pudge", win_rate: 51.40, pick_rate: 32.1, attr: "str", img: "steamstatic.com" },{ id: 9, name: "invoker", localized_name: "Invoker", win_rate: 51.15, pick_rate: 14.8, attr: "all", img: "steamstatic.com" },{ id: 10, name: "axe", localized_name: "Axe", win_rate: 50.95, pick_rate: 15.2, attr: "str", img: "steamstatic.com" },{ id: 11, name: "legion_commander", localized_name: "Legion Commander", win_rate: 50.35, pick_rate: 17.6, attr: "str", img: "steamstatic.com" },{ id: 12, name: "crystal_maiden", localized_name: "Crystal Maiden", win_rate: 50.10, pick_rate: 13.9, attr: "int", img: "steamstatic.com" },{ id: 13, name: "juggernaut", localized_name: "Juggernaut", win_rate: 49.45, pick_rate: 18.1, attr: "agi", img: "steamstatic.com" },{ id: 14, name: "phantom_assassin", localized_name: "Phantom Assassin", win_rate: 48.90, pick_rate: 22.3, attr: "agi", img: "steamstatic.com" },{ id: 15, name: "kez", localized_name: "Kez", win_rate: 48.20, pick_rate: 19.3, attr: "agi", img: "steamstatic.com" },{ id: 16, name: "rubick", localized_name: "Rubick", win_rate: 47.60, pick_rate: 25.4, attr: "int", img: "steamstatic.com" },{ id: 17, name: "antimage", localized_name: "Anti-Mage", win_rate: 46.80, pick_rate: 12.1, attr: "agi", img: "steamstatic.com" },{ id: 18, name: "lion", localized_name: "Lion", win_rate: 45.90, pick_rate: 20.8, attr: "int", img: "steamstatic.com" }];const ASSETS = {tango: { name: "Tango", wr: "51.4%", img: "steamstatic.com" },wb: { name: "Wraith Band", wr: "53.2%", img: "steamstatic.com" },bracer: { name: "Bracer", wr: "52.8%", img: "steamstatic.com" },pt: { name: "Power Treads", wr: "55.8%", img: "steamstatic.com" },phase: { name: "Phase Boots", wr: "54.1%", img: "steamstatic.com" },manta: { name: "Manta Style", wr: "58.4%", img: "steamstatic.com" },bkb: { name: "Black King Bar", wr: "56.9%", img: "steamstatic.com" },butterfly: { name: "Butterfly", wr: "61.5%", img: "steamstatic.com" },blink: { name: "Blink Dagger", wr: "55.1%", img: "steamstatic.com" },heart: { name: "Heart of Tarrasque", wr: "59.8%", img: "steamstatic.com" },lens: { name: "Aether Lens", wr: "52.4%", img: "steamstatic.com" },aghanim: { name: "Aghanims Scepter", wr: "57.9%", img: "steamstatic.com" },hex: { name: "Scythe of Vyse", wr: "63.2%", img: "steamstatic.com" }};const ATTR_ICONS = {str: "steamstatic.com",agi: "steamstatic.com",int: "steamstatic.com",all: "steamstatic.com"};const cursor = document.getElementById('custom-cursor');const follower = document.getElementById('cursor-follower');let cursorX = -100, cursorY = -100;document.addEventListener('mousemove', (e) => {cursorX = e.clientX; cursorY = e.clientY;cursor.style.left = cursorX + 'px'; cursor.style.top = cursorY + 'px';});function updateFollower() {let fx = parseFloat(follower.style.left || 0); let fy = parseFloat(follower.style.top || 0);if(isNaN(fx)) fx = cursorX; if(isNaN(fy)) fy = cursorY;let dx = cursorX - fx; let dy = cursorY - fy;follower.style.left = (fx + dx * 0.25) + 'px'; follower.style.top = (fy + dy * 0.25) + 'px';requestAnimationFrame(updateFollower);}requestAnimationFrame(updateFollower);document.addEventListener('click', (e) => {const r = document.createElement('div'); r.className = 'click-ripple'; r.style.left = e.clientX + 'px'; r.style.top = e.clientY + 'px';document.body.appendChild(r); setTimeout(() => r.remove(), 500);});const canvas = document.getElementById('bg-canvas'); const ctx = canvas.getContext('2d');function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }window.addEventListener('resize', resizeCanvas); resizeCanvas();let particles = Array.from({length: 35}, () => ({ x: Math.random()*window.innerWidth, y: Math.random()*window.innerHeight, r: Math.random()*1.5+0.5, speed: Math.random()*0.4+0.1, alpha: Math.random()0.5+0.2 }));function animateBg() {ctx.clearRect(0,0,canvas.width,canvas.height);particles.forEach(p => {ctx.beginPath(); ctx.fillStyle = rgba(255, 30, 39, ${p.alpha}); ctx.arc(p.x, p.y, p.r, 0, Math.PI2); ctx.fill();p.y -= p.speed; if(p.y < 0) { p.y = canvas.height; p.x = Math.random()*canvas.width; }});requestAnimationFrame(animateBg);}animateBg();function switchTab(tab) {document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));const e = window.event; if(e && e.target.classList.contains('nav-btn')) e.target.classList.add('active');else {document.querySelectorAll('.nav-btn').forEach(b => { if (b.getAttribute('onclick').includes(tab)) b.classList.add('active'); });}document.getElementById(${tab}-tab).classList.add('active');if(state.selectedHeroId) renderHeroDetails(state.selectedHeroId);}function filterHeroes() {const q = document.getElementById('hero-search').value.toLowerCase();renderMetaRating(state.heroes.filter(h => h.localized_name.toLowerCase().includes(q)));}async function fetchDotaData() {try {const response = await fetch("opendota.com");if(!response.ok) throw new Error();const data = await response.json();if(!data || data.length === 0) throw new Error();const serverMap = new Map(data.map(x => [x.name.replace('npc_dota_hero_', ''), x]));state.heroes = FULL_HEROES_DATABASE.map(localHero => {const serv = serverMap.get(localHero.name);if(serv) {const total = serv.pro_win + serv.pro_pick;return {...localHero,win_rate: total > 0 ? parseFloat(((serv.pro_win / total) * 100).toFixed(2)) : localHero.win_rate,pick_rate: serv.pro_pick ? parseFloat(((serv.pro_pick / 400) * 100).toFixed(1)) : localHero.pick_rate};}return localHero;});} catch(err) {state.heroes = FULL_HEROES_DATABASE;}state.heroes.sort((a,b) => b.win_rate - a.win_rate);renderMetaRating();}function renderMetaRating(list = state.heroes) {const grids = { S: document.getElementById("tier-s-grid"), A: document.getElementById("tier-a-grid"), B: document.getElementById("tier-b-grid") };Object.values(grids).forEach(g => { if(g) g.innerHTML = ""; });list.forEach(h => {let tierLetter = "B"; if(h.win_rate >= 53) tierLetter = "S"; else if(h.win_rate >= 50) tierLetter = "A";const card = document.createElement("div"); card.className = "hero-card"; card.onclick = () => { state.selectedHeroId = h.id; switchTab('builds'); };card.innerHTML = <div class="hero-img-wrapper"> <img class="hero-img" src="${h.img}"> <img class="hero-attr-icon" src="${ATTR_ICONS[h.attr]||ATTR_ICONS.str}"> </div> <div class="hero-info"> <div class="hero-name">${h.localized_name}</div> <div> <div class="hero-stats-row"><span class="stat-label">Винрейт</span><span class="stat-value win">${h.win_rate}%</span></div> <div class="hero-stats-row"><span class="stat-label">Пикрейт</span><span class="stat-value">${h.pick_rate}%</span></div> </div> </div>;if (grids[tierLetter]) grids[tierLetter].appendChild(card);});}function changeBuildStyle(style) {document.querySelectorAll('.build-tab-btn').forEach(b => b.classList.remove('active'));const e = window.event; if(e) e.target.classList.add('active');state.currentBuildStyle = style;if(state.selectedHeroId) renderHeroDetails(state.selectedHeroId);}function renderHeroDetails(id) {const h = state.heroes.find(x => x.id === id); if(!h) return;let tl = "B", tc = "b"; if(h.win_rate >= 53) { tl = "S"; tc = "s"; } else if(h.win_rate >= 50) { tl = "A"; tc = "a"; }['builds','counters'].forEach(tab => {document.getElementById(${tab}-placeholder).style.display = "none"; document.getElementById(${tab}-container).style.display = "grid";document.getElementById(${tab}-sidebar).innerHTML = <img class="sidebar-img" src="${h.img}"><div class="sidebar-name">${h.localized_name}</div><div class="sidebar-tier ${tc}">${tl}-Тир</div>;});let items = [];if(state.currentBuildStyle === 'heavy') {items = [ASSETS.tango, ASSETS.bkb, ASSETS.heart, ASSETS.butterfly];} else {if(h.attr === 'agi') items = [ASSETS.tango, ASSETS.wb, ASSETS.pt, ASSETS.manta, ASSETS.butterfly, ASSETS.bkb];else if(h.attr === 'int') items = [ASSETS.tango, ASSETS.lens, ASSETS.pt, ASSETS.aghanim, ASSETS.hex];else items = [ASSETS.tango, ASSETS.bracer, ASSETS.phase, ASSETS.blink, ASSETS.bkb, ASSETS.heart];}document.getElementById('build-items-display').innerHTML = items.map(i => <div class="item-wrapper"><img class="item-img" src="${i.img}"><div class="item-name">${i.name}</div><div class="item-wr">${i.wr} WR</div></div>).join('');// Фиксируем и отрисовываем корректную сетку скилловconst qPattern = [true, false, true, false, true, false, true, false, false, false, false, false, false, false, false];const wPattern = [false, true, false, true, false, false, false, true, true, false, false, false, false, false, false];const rPattern = [false, false, false, false, false, true, false, false, false, false, false, true, false, false, true];document.getElementById('skills-progression').innerHTML = <div class="skill-row"><span class="skill-name">Активный Скилл (Q)</span><div class="skills-steps">${qPattern.map((act, i) =>${act?i+1:''}).join('')}</div></div> <div class="skill-row"><span class="skill-name">Пассивный Скилл (W)</span><div class="skills-steps">${wPattern.map((act, i) => ${act?i+1:''}).join('')}</div></div> <div class="skill-row"><span class="skill-name">Ультимейт (R)</span><div class="skills-steps">${rPattern.map((act, i) => ${act?i+1:''}).join('')}</div></div> ;const others = state.heroes.filter(x => x.id !== id).slice(0, 3);document.getElementById('counters-best-list').innerHTML = others.map(x => <div class="counter-item"><div class="counter-hero-meta"><img class="counter-hero-img" src="${x.img}"><span class="counter-hero-name">${x.localized_name}</span></div><span class="counter-stat-value">${(h.win_rate + 2.4).toFixed(1)}%</span></div>).join('');document.getElementById('counters-worst-list').innerHTML = others.reverse().map(x => <div class="counter-item"><div class="counter-hero-meta"><img class="counter-hero-img" src="${x.img}"><span class="counter-hero-name">${x.localized_name}</span></div><span class="counter-stat-value">${(h.win_rate - 3.1).toFixed(1)}%</span></div>).join('');}window.addEventListener("DOMContentLoaded", fetchDotaData);
+        h1, h2, h3, .btn, .stat-val { font-family: 'Orbitron', sans-serif; }
+        
+        /* ШАПКА ПРОФИЛЯ */
+        .profile-card { background: var(--bg-card); border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; backdrop-filter: blur(10px); }
+        .user-info h2 { font-size: 1.1rem; color: #fff; }
+        .user-info id { font-size: 0.8rem; color: #94a3b8; }
+        .balance-box { text-align: right; }
+        .balance-box span { font-size: 0.8rem; color: var(--accent); text-transform: uppercase; font-weight: 700; }
+        .balance-box div { font-size: 1.4rem; font-weight: 900; color: #fff; text-shadow: 0 0 10px rgba(255,176,32,0.4); }
+
+        /* ИГРОВАЯ ЗОНА: КЕЙС */
+        .case-zone { background: var(--bg-card); border: 1px solid rgba(255,30,39,0.2); border-radius: 12px; padding: 30px 15px; text-align: center; margin-bottom: 20px; position: relative; overflow: hidden; box-shadow: 0 0 20px rgba(255,30,39,0.1); }
+        .case-title { font-size: 1.2rem; color: var(--primary); margin-bottom: 15px; text-transform: uppercase; }
+        
+        /* Рулетка открытия */
+        .roulette-container { width: 100%; height: 95px; background: rgba(0,0,0,0.4); border-radius: 8px; margin-bottom: 20px; position: relative; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
+        .pointer { position: absolute; top: 0; left: 50%; width: 2px; height: 100%; background: var(--accent); z-index: 10; box-shadow: 0 0 10px var(--accent); transform: translateX(-50%); }
+        .roulette-track { display: flex; position: absolute; left: 0; top: 10px; transition: transform 4s cubic-bezier(0.1, 1, 0.1, 1); will-change: transform; }
+        .roulette-item { width: 90px; height: 75px; margin: 0 5px; background: rgba(255,255,255,0.03); border-radius: 6px; display: flex; flex-direction: column; justify-content: center; align-items: center; border-bottom: 4px solid #fff; flex-shrink: 0; }
+        .roulette-item.rare { border-color: var(--rarity-rare); background: rgba(0, 230, 118, 0.05); }
+        .roulette-item.mythical { border-color: var(--rarity-mythical); background: rgba(0, 176, 255, 0.05); }
+        .roulette-item.immortal { border-color: var(--rarity-immortal); background: rgba(224, 64, 251, 0.05); }
+        .roulette-item.arcana { border-color: var(--rarity-arcana); background: rgba(255, 176, 32, 0.05); }
+        .item-icon { font-size: 1.6rem; }
+        .item-lbl { font-size: 0.65rem; font-weight: 700; margin-top: 4px; text-transform: uppercase; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        .btn { background: var(--primary); border: none; color: #fff; padding: 12px 35px; font-size: 1rem; font-weight: 700; border-radius: 6px; text-transform: uppercase; box-shadow: 0 0 15px rgba(255,30,39,0.4); }
+        .btn:disabled { background: #1e293b; color: #64748b; box-shadow: none; }
+
+        /* ИНВЕНТАРЬ */
+        .inventory-section h3 { font-size: 1.1rem; margin-bottom: 12px; color: var(--text-gray); text-transform: uppercase; }
+        .inventory-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .inv-slot { background: var(--bg-card); border: 1px solid rgba(255,255,255,0.03); aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; border-bottom: 3px solid #475569; }
+        .inv-slot .icon { font-size: 1.5rem; }
+        .inv-slot .rarity-dot { position: absolute; top: 6px; right: 6px; width: 6px; height: 6px; border-radius: 50%; }
+        .inv-slot.rare { border-bottom-color: var(--rarity-rare); }.inv-slot.rare .rarity-dot { background: var(--rarity-rare); }
+        .inv-slot.mythical { border-bottom-color: var(--rarity-mythical); }.inv-slot.mythical .rarity-dot { background: var(--rarity-mythical); }
+        .inv-slot.immortal { border-bottom-color: var(--rarity-immortal); }.inv-slot.immortal .rarity-dot { background: var(--rarity-immortal); }
+        .inv-slot.arcana { border-bottom-color: var(--rarity-arcana); }.inv-slot.arcana .rarity-dot { background: var(--rarity-arcana); }
+    </style>
+</head>
+<body>
+    <div class="profile-card">
+        <div class="user-info"><h2 id="username">Cyber_Player</h2><id id="userid">ID: --------</id></div>
+        <div class="balance-box"><span>Кредиты</span><div id="balance">1000</div></div>
+    </div>
+
+    <div class="case-zone">
+        <div class="case-title">Cyberpunk Weapon Case</div>
+        <div class="roulette-container">
+            <div class="pointer"></div>
+            <div class="roulette-track" id="track"></div>
+        </div>
+        <button class="btn" id="open-btn" onclick="openCase()">Открыть (-100)</button>
+    </div>
+
+    <div class="inventory-section">
+        <h3>Ваш инвентарь (<span id="inv-count">0</span>)</h3>
+        <div class="inventory-grid" id="inv-grid"></div>
+    </div>
+
+    <script>
+        // Инициализируем Telegram WebApp API
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.expand(); // Разворачиваем на весь экран телефона
+            document.getElementById('username').innerText = tg.initDataUnsafe?.user?.first_name || "Cyber_Player";
+            document.getElementById('userid').innerText = "ID: " + (tg.initDataUnsafe?.user?.id || "00000000");
+        }
+
+        let state = { balance: 1000, inventory: [] };
+        const LOOT_POOL = [
+            { name: "Neon Blade", type: "rare", icon: "⚔️" },
+            { name: "Laser Rifle", type: "mythical", icon: "🔫" },
+            { name: "Cyber Armor", type: "immortal", icon: "🛡️" },
+            { name: "Arcana Crown", type: "arcana", icon: "👑" }
+        ];
+
+        const track = document.getElementById('track');
+        const openBtn = document.getElementById('open-btn');
+
+        // Генерируем ленту рулетки перед стартом
+        function generateTrackItems() {
+            track.innerHTML = '';
+            for(let i=0; i<45; i++) {
+                const rand = Math.random();
+                let item = LOOT_POOL[0]; // rare по умолчанию
+                if(rand > 0.95) item = LOOT_POOL[3];      // arcana (5%)
+                else if(rand > 0.85) item = LOOT_POOL[2]; // immortal (10%)
+                else if(rand > 0.60) item = LOOT_POOL[1]; // mythical (25%)
+                
+                const div = document.createElement('div');
+                div.className = `roulette-item ${item.type}`;
+                div.innerHTML = `<span class="item-icon">${item.icon}</span><span class="item-lbl">${item.name}</span>`;
+                track.appendChild(div);
+            }
+        }
+        generateTrackItems();
+
+        function openCase() {
+            if(state.balance < 100) { tg?.showAlert("Недостаточно кредитов!"); return; }
+            
+            state.balance -= 100;
+            document.getElementById('balance').innerText = state.balance;
+            openBtn.disabled = true;
+
+            generateTrackItems();
+            track.style.transition = 'none';
+            track.style.transform = 'translateX(0px)';
+            
+            // Форсируем перерисовку браузера
+            track.offsetHeight;
+
+            // Выбираем финальный выигрышный предмет (который встанет под указатель)
+            const winIndex = 38; 
+            const winItem = track.children[winIndex];
+            
+            // Рассчитываем точную позицию сдвига ленты
+            const itemWidth = 100; 
+            const containerWidth = document.querySelector('.roulette-container').offsetWidth;
+            const targetX = -(winIndex * itemWidth) + (containerWidth / 2) - (itemWidth / 2);
+
+            track.style.transition = 'transform 4s cubic-bezier(0.1, 1, 0.1, 1)';
+            track.style.transform = `translateX(${targetX}px)`;
+
+            setTimeout(() => {
+                openBtn.disabled = false;
+                
+                // Извлекаем данные выигранного предмета из классов и текста элемента
+                let type = 'rare';
+                if(winItem.classList.contains('arcana')) type = 'arcana';
+                else if(winItem.classList.contains('immortal')) type = 'immortal';
+                else if(winItem.classList.contains('mythical')) type = 'mythical';
+                
+                const newItem = {
+                    name: winItem.querySelector('.item-lbl').innerText,
+                    icon: winItem.querySelector('.item-icon').innerText,
+                    type: type
+                };
+
+                state.inventory.push(newItem);
+                updateInventoryUI();
+
+                // Отправляем данные обратно боту в чат Telegram!
+                if(tg) {
+                    tg.sendData(JSON.stringify({ event: "case_opened", item: newItem.name, balance: state.balance }));
+                }
+Используйте код с осторожностью.}, 4100);}function updateInventoryUI() {document.getElementById('inv-count').innerText = state.inventory.length;const grid = document.getElementById('inv-grid');grid.innerHTML = state.inventory.map(item => <div class="inv-slot ${item.type}"> <div class="rarity-dot"></div> <span class="icon">${item.icon}</span> </div>).join('');}
